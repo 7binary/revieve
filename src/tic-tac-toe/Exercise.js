@@ -32,23 +32,50 @@ const calculateWinner = ({ squares }) => {
   return null;
 };
 
-const Board = () => {
-  const squares = React.useState(Array(9).fill(null));
+const defaultPlayer = 'X';
+const defaultStatus = 'Scratch: Cat\'s game';
+const defaultSquares = Array(9).fill(null);
 
-  // TIP: You'll need the following bits of information:
-  // - nextValue => 'X' | 'O'
-  // - winner => 'X' | 'O' | null
-  // - status => `Winner: ${winner}` | `Scratch: Cat's game` | `Next player: ${nextValue}`
-  // The calculations are already written in helper functions for you! So you can use those utilities
-  // to create these variables
+const Board = () => {
+  const [winner, setWinner] = React.useState(null);
+  const [player, setPlayer] = React.useState(defaultPlayer);
+  const [squares, setSquares] = React.useState(defaultSquares);
+  const [status, setStatus] = React.useState(defaultStatus);
 
   const selectSquare = (square) => {
-    // This is the function your square click handler will call. `square` should
-    // be an index. So if they click the center square, this will be `4`.
+    if (square < 0 || square > 8 || squares[square] || winner) {
+      return false;
+    }
+    const nextSquares = [...squares];
+    nextSquares[square] = player;
+    setSquares(nextSquares);
+    const nextWinner = calculateWinner({ squares: nextSquares });
+    const nextPlayer = player === 'O' ? 'X' : 'O';
+
+    if (nextWinner) {
+      setWinner(nextWinner);
+      const nextStatus = calculateStatus({
+        winner: nextWinner,
+        squares: nextSquares,
+        nextValue: nextPlayer,
+      });
+      setStatus(nextStatus);
+    } else {
+      const nextStatus = calculateStatus({
+        winner: null,
+        squares: nextSquares,
+        nextValue: nextPlayer,
+      });
+      setStatus(nextStatus);
+      setPlayer(nextPlayer);
+    }
   };
 
   const restart = () => {
-    // reset the game
+    setStatus(defaultStatus);
+    setSquares(defaultSquares);
+    setPlayer(defaultPlayer);
+    setWinner(null);
   };
 
   const renderSquare = (i) => (
@@ -59,8 +86,7 @@ const Board = () => {
 
   return (
     <div>
-      {/* put the status of the game in the board */}
-      <div className="status">STATUS</div>
+      <div className="status">{status}</div>
       <div className="board-row">
         {renderSquare(0)}
         {renderSquare(1)}
