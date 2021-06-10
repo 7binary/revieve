@@ -34,7 +34,7 @@ const calculateWinner = ({ squares }) => {
 };
 
 const defaultPlayer = 'X';
-const defaultStatus = 'Scratch: Cat\'s game';
+const defaultStatus = 'Next player: X';
 const defaultSquares = Array(9).fill(null);
 
 const useLocalStorageState = (startValue = undefined, key = '_') => {
@@ -58,8 +58,12 @@ const HistoryWidget = ({ history, travelSquaresHistory }) => {
       {history.map((historyRecord, index) => (
         <li key={historyRecord.move.toString()} className={`history-record ${historyRecord.current ? 'current' : ''}`}>
           <span className="history-number">{index + 1}.</span>
-          <button className="history-btn" onClick={() => travelSquaresHistory(historyRecord.move)}>
-            Go to {historyRecord.move === 0 ? 'game start' : `#${historyRecord.move}`}
+          <button
+            className="history-btn"
+            disabled={historyRecord.current ? 'disabled' : ''}
+            onClick={() => travelSquaresHistory(historyRecord.move)}
+          >
+            Go to {historyRecord.move === 0 ? 'game start' : `move #${historyRecord.move}`}
             {historyRecord.current ? ' (current)' : ''}
           </button>
         </li>
@@ -196,7 +200,7 @@ const Board = () => {
             restart
           </button>
         </div>
-        <div>
+        <div className="info">
           <div className="status">{status}</div>
           <HistoryWidget history={history} travelSquaresHistory={travelSquaresHistory} />
         </div>
