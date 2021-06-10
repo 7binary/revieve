@@ -1,3 +1,20 @@
+.container {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.history {
+  list-style: none;
+}
+.history-number {
+  display: inline-block;
+  min-width: 20px;
+}
+.history-record.current {
+  opacity: 0.5;
+}
+
 .game {
   font: 14px 'Century Gothic', Futura, sans-serif;
   margin: 20px;
@@ -16,6 +33,7 @@
 }
 
 .status {
+  margin-left: 30px;
   margin-bottom: 10px;
 }
 
