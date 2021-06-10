@@ -33,7 +33,7 @@ const calculateWinner = ({ squares }) => {
 };
 
 const defaultPlayer = 'X';
-const defaultStatus = 'Scratch: Cat\'s game';
+const defaultStatus = 'Next player: X';
 const defaultSquares = Array(9).fill(null);
 
 const Board = () => {
