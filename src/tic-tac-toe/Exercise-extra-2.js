@@ -1,5 +1,4 @@
-import * as React from 'react';
-import { useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 
 // eslint-disable-next-line no-unused-vars
 const calculateStatus = ({ winner, squares, nextValue }) =>
@@ -33,13 +32,9 @@ const calculateWinner = ({ squares }) => {
   return null;
 };
 
-const defaultPlayer = 'X';
-const defaultStatus = 'Next player: X';
-const defaultSquares = Array(9).fill(null);
-
 const useLocalStorageState = (startValue = undefined, key = '_') => {
   const loadedValue = window.localStorage.getItem(key);
-  const [value, setValue] = React.useState(loadedValue ? JSON.parse(loadedValue) : startValue);
+  const [value, setValue] = useState(loadedValue ? JSON.parse(loadedValue) : startValue);
 
   const updateValue = (newValue) => {
     setValue(newValue);
@@ -49,73 +44,47 @@ const useLocalStorageState = (startValue = undefined, key = '_') => {
   return [value, updateValue];
 };
 
+const defaultSquares = Array(9).fill(null);
+
 const Board = () => {
-  const [winner, setWinner] = React.useState(null);
-  const [player, setPlayer] = React.useState(defaultPlayer);
   const [squares, setSquares] = useLocalStorageState(defaultSquares, 'squares');
-  const [status, setStatus] = React.useState(defaultStatus);
+  const restart = useCallback(() => setSquares(defaultSquares), []);
 
-  useEffect(() => {
-    if (squares && squares.filter(Boolean).length > 0) {
-      console.log('loaded', squares);
-      const nextPlayer = calculateNextValue({ squares });
-      const nextWinner = calculateWinner({ squares });
-      const nextStatus = calculateStatus({
-        winner: nextWinner,
+  const selectSquare = useCallback(
+    (square) => {
+      const winner = calculateWinner({ squares });
+      if (square < 0 || square > 8 || squares[square] || winner) {
+        return;
+      }
+      const nextSquares = [...squares];
+      nextSquares[square] = calculateNextValue({ squares });
+      setSquares(nextSquares);
+    },
+    [squares],
+  );
+
+  const renderSquare = useCallback(
+    (i) => (
+      <button className="square" onClick={() => selectSquare(i)}>
+        {squares[i]}
+      </button>
+    ),
+    [squares],
+  );
+
+  const getStatus = useCallback(
+    () =>
+      calculateStatus({
+        winner: calculateWinner({ squares }),
         squares,
-        nextValue: nextPlayer,
-      });
-      setPlayer(nextPlayer);
-      setStatus(nextStatus);
-      setWinner(nextWinner);
-    }
-  }, []);
-
-  const selectSquare = (square) => {
-    if (square < 0 || square > 8 || squares[square] || winner) {
-      return false;
-    }
-    const nextSquares = [...squares];
-    nextSquares[square] = player;
-    setSquares(nextSquares);
-    const nextWinner = calculateWinner({ squares: nextSquares });
-    const nextPlayer = player === 'O' ? 'X' : 'O';
-
-    if (nextWinner) {
-      setWinner(nextWinner);
-      const nextStatus = calculateStatus({
-        winner: nextWinner,
-        squares: nextSquares,
-        nextValue: nextPlayer,
-      });
-      setStatus(nextStatus);
-    } else {
-      const nextStatus = calculateStatus({
-        winner: null,
-        squares: nextSquares,
-        nextValue: nextPlayer,
-      });
-      setStatus(nextStatus);
-      setPlayer(nextPlayer);
-    }
-  };
-
-  const restart = () => {
-    setStatus(defaultStatus);
-    setSquares(defaultSquares);
-    setPlayer(defaultPlayer);
-    setWinner(null);
-  };
-
-  const renderSquare = (i) => (
-    <button className="square" onClick={() => selectSquare(i)}>
-      {squares[i]}
-    </button>
+        nextValue: calculateNextValue({ squares }),
+      }),
+    [squares],
   );
 
   return (
     <div>
-      <div className="status">{status}</div>
+      <div className="status">{getStatus()}</div>
       <div className="board-row">
         {renderSquare(0)}
         {renderSquare(1)}
