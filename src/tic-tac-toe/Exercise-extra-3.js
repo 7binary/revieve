@@ -1,5 +1,4 @@
-import * as React from 'react';
-import { useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 // eslint-disable-next-line no-unused-vars
 const calculateStatus = ({ winner, squares, nextValue }) =>
@@ -33,13 +32,9 @@ const calculateWinner = ({ squares }) => {
   return null;
 };
 
-const defaultPlayer = 'X';
-const defaultStatus = 'Next player: X';
-const defaultSquares = Array(9).fill(null);
-
 const useLocalStorageState = (startValue = undefined, key = '_') => {
   const loadedValue = window.localStorage.getItem(key);
-  const [value, setValue] = React.useState(loadedValue ? JSON.parse(loadedValue) : startValue);
+  const [value, setValue] = useState(loadedValue ? JSON.parse(loadedValue) : startValue);
 
   const updateValue = (newValue) => {
     setValue(newValue);
@@ -49,10 +44,56 @@ const useLocalStorageState = (startValue = undefined, key = '_') => {
   return [value, updateValue];
 };
 
-const HistoryWidget = ({ history, travelSquaresHistory }) => {
+const Board = ({ squares, selectSquare, restart }) => {
+  const renderSquare = useCallback(
+    (i) => (
+      <button className="square" onClick={() => selectSquare(i)}>
+        {squares[i]}
+      </button>
+    ),
+    [squares],
+  );
+
+  const getStatus = useCallback(
+    () =>
+      calculateStatus({
+        winner: calculateWinner({ squares }),
+        squares,
+        nextValue: calculateNextValue({ squares }),
+      }),
+    [squares],
+  );
+
+  return (
+    <div>
+      <div className="status">{getStatus()}</div>
+      <div className="board-row">
+        {renderSquare(0)}
+        {renderSquare(1)}
+        {renderSquare(2)}
+      </div>
+      <div className="board-row">
+        {renderSquare(3)}
+        {renderSquare(4)}
+        {renderSquare(5)}
+      </div>
+      <div className="board-row">
+        {renderSquare(6)}
+        {renderSquare(7)}
+        {renderSquare(8)}
+      </div>
+      <button className="restart" onClick={restart}>
+        restart
+      </button>
+    </div>
+  );
+};
+
+const HistoryWidget = ({ history, travelHistory }) => {
   if (!history) {
     return null;
   }
+
   return (
     <ul className="history">
       {history.map((historyRecord, index) => (
@@ -61,7 +102,7 @@ const HistoryWidget = ({ history, travelSquaresHistory }) => {
           <button
             className="history-btn"
             disabled={historyRecord.current ? 'disabled' : ''}
-            onClick={() => travelSquaresHistory(historyRecord.move)}
+            onClick={() => travelHistory(historyRecord.move)}
           >
             Go to {historyRecord.move === 0 ? 'game start' : `move #${historyRecord.move}`}
             {historyRecord.current ? ' (current)' : ''}
@@ -72,152 +113,73 @@ const HistoryWidget = ({ history, travelSquaresHistory }) => {
   );
 };
 
-const Board = () => {
-    const [winner, setWinner] = React.useState(null);
-    const [player, setPlayer] = React.useState(defaultPlayer);
-    const [squares, setSquares] = useLocalStorageState(defaultSquares, 'squares');
-    const [history, setHistory] = useLocalStorageState([], 'history');
-    const [status, setStatus] = React.useState(defaultStatus);
-
-    useEffect(() => {
-      if (history.length === 0) {
-        recordSquaresHistory(defaultSquares);
-      }
-    }, [history, squares]);
-
-    const recordSquaresHistory = (nextSquares) => {
-      const move = history.length;
-      const currIndex = history.findIndex(h => h.current === true);
-      const prevHistory = currIndex < move - 1
-        ? history.slice(0, currIndex+1).map(h => ({ ...h, current: false }))
-        : history.map(h => ({ ...h, current: false }));
-      const addHistory = {
-        move: prevHistory.length,
-        squares: nextSquares,
-        current: true,
-      };
-      setSquares(nextSquares);
-      setHistory([...prevHistory, addHistory]);
-    };
-
-    const travelSquaresHistory = (move) => {
-      const historyRecord = history.find(h => h.move === move);
-      if (historyRecord) {
-        const nextHistory = history.map(h => ({ ...h, current: h.move === move }));
-        const nextPlayer = calculateNextValue({ squares: historyRecord.squares });
-        const nextWinner = calculateWinner({ squares: historyRecord.squares });
-        const nextStatus = calculateStatus({
-          winner: nextWinner,
-          squares: historyRecord.squares,
-          nextValue: nextPlayer,
-        });
-        setSquares(historyRecord.squares);
-        setHistory(nextHistory);
-        setPlayer(nextPlayer);
-        setWinner(nextWinner);
-        setStatus(nextStatus);
-      }
-    };
-
-    useEffect(() => {
-      if (squares && squares.filter(Boolean).length > 0) {
-        console.log('loaded', squares);
-        const nextPlayer = calculateNextValue({ squares });
-        const nextWinner = calculateWinner({ squares });
-        const nextStatus = calculateStatus({
-          winner: nextWinner,
-          squares,
-          nextValue: nextPlayer,
-        });
-        setPlayer(nextPlayer);
-        setStatus(nextStatus);
-        setWinner(nextWinner);
-      }
-    }, []);
-
-    const selectSquare = (square) => {
-      if (square < 0 || square > 8 || squares[square] || winner) {
-        return false;
-      }
-      const nextSquares = [...squares];
-      nextSquares[square] = player;
-      recordSquaresHistory(nextSquares);
-      const nextWinner = calculateWinner({ squares: nextSquares });
-      const nextPlayer = player === 'O' ? 'X' : 'O';
-
-      if (nextWinner) {
-        setWinner(nextWinner);
-        const nextStatus = calculateStatus({
-          winner: nextWinner,
-          squares: nextSquares,
-          nextValue: nextPlayer,
-        });
-        setStatus(nextStatus);
-      } else {
-        const nextStatus = calculateStatus({
-          winner: null,
-          squares: nextSquares,
-          nextValue: nextPlayer,
-        });
-        setStatus(nextStatus);
-        setPlayer(nextPlayer);
-      }
-    };
-
-    const restart = () => {
-      setStatus(defaultStatus);
-      setSquares(defaultSquares);
-      setPlayer(defaultPlayer);
-      setWinner(null);
-      setHistory([]);
-    };
-
-    const renderSquare = (i) => (
-      <button className="square" onClick={() => selectSquare(i)}>
-        {squares[i]}
-      </button>
-    );
-
-    return (
-      <div className="container">
-        <div>
-          <div className="board-row">
-            {renderSquare(0)}
-            {renderSquare(1)}
-            {renderSquare(2)}
-          </div>
-          <div className="board-row">
-            {renderSquare(3)}
-            {renderSquare(4)}
-            {renderSquare(5)}
-          </div>
-          <div className="board-row">
-            {renderSquare(6)}
-            {renderSquare(7)}
-            {renderSquare(8)}
-          </div>
-          <button className="restart" onClick={restart}>
-            restart
-          </button>
-        </div>
-        <div className="info">
-          <div className="status">{status}</div>
-          <HistoryWidget history={history} travelSquaresHistory={travelSquaresHistory} />
-        </div>
-      </div>
-    );
-  }
-;
-
 const Game = () => {
-    return (
-      <div className="game">
-        <div className="game-board">
-          <Board />
-        </div>
-      </div>
-    );
-  }
-;
+  const [squares, setSquares] = useLocalStorageState(Array(9).fill(null), 'squares');
+  const [history, setHistory] = useLocalStorageState([], 'history');
+
+  const restart = useCallback(() => {
+    setSquares(Array(9).fill(null));
+    setHistory([]);
+  }, []);
+
+  useEffect(() => {
+    recordSquaresHistory(squares);
+  }, [squares]);
+
+  const selectSquare = (square) => {
+    const winner = calculateWinner({ squares });
+    if (square < 0 || square > 8 || squares[square] || winner) {
+      return;
+    }
+    const nextSquares = [...squares];
+    nextSquares[square] = calculateNextValue({ squares });
+    setSquares(nextSquares);
+  };
+
+  const recordSquaresHistory = (nextSquares) => {
+    // don't record travelled
+    const joinedSquares = nextSquares.join(' ');
+    const actualHistory = history.find((h) => h.squares.join(' ') === joinedSquares);
+    if (actualHistory) {
+      const nextHistory = history.map((h) => ({ ...h, current: h.move === actualHistory.move }));
+      setHistory(nextHistory);
+      return;
+    }
+
+    const move = history.length;
+    const currIndex = history.findIndex((h) => h.current === true);
+    let prevHistory = [];
+
+    if (nextSquares.filter(Boolean).length !== 0) {
+      prevHistory =
+        currIndex < move - 1
+          ? history.slice(0, currIndex + 1).map((h) => ({ ...h, current: false }))
+          : history.map((h) => ({ ...h, current: false }));
+    }
+
+    const newHistory = {
+      move: prevHistory.length,
+      squares: nextSquares,
+      current: true,
+    };
+    setHistory([...prevHistory, newHistory]);
+  };
+
+  const travelHistory = (move) => {
+    const historyRecord = history.find((h) => h.move === move);
+    if (historyRecord) {
+      const nextHistory = history.map((h) => ({ ...h, current: h.move === move }));
+      setHistory(nextHistory);
+      setSquares(historyRecord.squares);
+    }
+  };
+
+  return (
+    <div className="container">
+      <Board squares={squares} selectSquare={selectSquare} restart={restart} />
+      <HistoryWidget history={history} travelHistory={travelHistory} />
+    </div>
+  );
+};
 
 export default Game;
